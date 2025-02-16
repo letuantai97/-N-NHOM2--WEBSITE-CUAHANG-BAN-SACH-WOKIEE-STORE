@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <% include partials/head %>
+    <style>
+        /* CSS cho thông báo */
+        #successMessage {
+            display: none;
+            color: green;
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid green;
+            background-color: #d4edda;
+            text-align: center;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <% include partials/loader %>
+    <header>
+        <% include partials/header %>
+    </header>
+
+    <div class="tt-breadcrumb">
+        <div class="container">
+            <ul>
+                <li><a href="/">Trang chủ</a></li>
+                <li>Thông tin đơn hàng</li>
+            </ul>
+        </div>
+    </div>
+
+    <div id="tt-pageContent">
+        <div class="container-indent">
+            <div class="container container-fluid-custom-mobile-padding">
+                <h1 class="tt-title-subpages noborder">Thông tin giao hàng</h1>
+                <div class="tt-shopping-layout">
+                    <h2 class="tt-title">Chi tiết đơn hàng</h2>
+                    <div class="tt-wrapper">
+                        <div class="form-default">
+                            <form id="paymentForm" method="POST" action="/add-order">
+                                <div class="form-group">
+                                    <label for="fullName">Họ và Tên *</label>
+                                    <input type="text" class="form-control" id="fullName" name="fullName" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="email">Email *</label>
+                                    <input type="email" class="form-control" id="email" name="email" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="shopAddress">Địa chỉ *</label>
+                                    <input type="text" class="form-control" id="shopAddress" name="address" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="shopPhone">Số điện thoại *</label>
+                                    <input type="tel" class="form-control" id="shopPhone" name="phone" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="orderNote">Ghi chú đơn hàng</label>
+                                    <textarea class="form-control" id="orderNote" name="orderNote" rows="3"></textarea>
+                                </div>
+                                <div class="row tt-offset-21">
+                                    <div class="col-auto">
+                                        <button type="submit" class="btn">Thanh toán</button>
+                                    </div>
+                                    <div class="col-auto align-self-center">
+                                        hoặc <a href="/" class="tt-link">Huỷ</a>
+                                    </div>
+                                </div>
+                            </form>
+                            <!-- Thông báo thanh toán thành công -->
+                            <div id="successMessage">Bạn đã thanh toán thành công!</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <% include partials/footer %>
+    </footer>
+    
+    <a href="#" class="tt-back-to-top">LÊN ĐẦU TRANG</a>
+
+    <% include partials/script %>
+
+    <script>
+        document.getElementById("paymentForm").addEventListener("submit", function(event) {
+            event.preventDefault(); // Ngăn form gửi ngay lập tức
+
+            // Hiển thị thông báo
+            let successMessage = document.getElementById("successMessage");
+            successMessage.style.display = "block";
+
+            // Ẩn thông báo sau 3 giây rồi gửi form
+            setTimeout(() => {
+                successMessage.style.display = "none";
+                this.submit(); // Gửi form sau khi hiển thị thông báo
+            }, 3000);
+        });
+    </script>
+</body>
+</html>

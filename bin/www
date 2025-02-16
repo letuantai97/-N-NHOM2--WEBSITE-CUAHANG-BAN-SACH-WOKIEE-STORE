@@ -1,0 +1,79 @@
+#!/usr/bin/env node
+
+/**
+ * Các phụ thuộc của module.
+ */
+var app = require('../app');
+var debug = require('debug')('webcuahangbansach:server');
+var http = require('http');
+
+/**
+ * Lấy cổng từ môi trường và lưu vào Express.
+ */
+var port = normalizePort(process.env.PORT || '3000');
+app.set('port', port);
+
+/**
+ * Tạo máy chủ HTTP.
+ */
+var server = http.createServer(app);
+
+/**
+ * Lắng nghe trên cổng được cung cấp, trên tất cả các giao diện mạng.
+ */
+server.listen(port);
+server.on('error', onError);
+server.on('listening', onListening);
+
+/**
+ * Chuẩn hóa một cổng thành số, chuỗi hoặc false.
+ */
+function normalizePort(val) {
+  var port = parseInt(val, 10);
+
+  if (isNaN(port)) {
+    return val;
+  }
+
+  if (port >= 0) {
+    return port;
+  }
+
+  return false;
+}
+
+/**
+ * Trình lắng nghe sự kiện lỗi của máy chủ HTTP.
+ */
+function onError(error) {
+  if (error.syscall !== 'listen') {
+    throw error;
+  }
+
+  var bind = typeof port === 'string'
+    ? 'Đường ống ' + port
+    : 'Cổng ' + port;
+
+  switch (error.code) {
+    case 'EACCES':
+      console.error(bind + ' yêu cầu quyền nâng cao');
+      process.exit(1);
+      break;
+    case 'EADDRINUSE':
+      console.error(bind + ' đã được sử dụng');
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
+}
+/**
+ * Trình lắng nghe sự kiện "listening" của máy chủ HTTP.
+ */
+function onListening() {
+  var addr = server.address();
+  var bind = typeof addr === 'string'
+    ? 'đường ống ' + addr
+    : 'cổng ' + addr.port;
+  debug('Đang lắng nghe trên ' + bind);
+}
