@@ -1,111 +1,166 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const router = express.Router();
-const Products = require('../models/product');  // Đảm bảo đường dẫn đúng
-// API thêm sản phẩm (POST)
+const Products = require("../models/product");
+
+// API thêm một sản phẩm (POST)
 router.post("/products", async (req, res) => {
   try {
-    const { name, description, stock, price, size, productType, color, images, materials } = req.body;
+    const {
+      name,
+      description = "",
+      stock,
+      price,
+      size = [],
+      productType = {},
+      color = [],
+      images = [],
+      materials = [],
+      userId,
+      oldPrice = null,
+      isSale = { status: false, percent: 0 },
+      comment = { total: 0, items: [] },
+      pattern = [],
+      tags = [],
+      labels = "",
+      buyCounts = 0,
+      viewCounts = 0,
+      dateAdded,
+      slug = "",
+      catolog = ""
+    } = req.body;
 
-    // Kiểm tra dữ liệu đầu vào (có thể mở rộng theo yêu cầu)
-    if (!name || !price || !stock) {
-      return res.status(400).json({ message: "Tên, giá và số lượng không được để trống" });
+    // Kiểm tra các trường bắt buộc
+    if (!name || !price || !stock || !userId) {
+      return res.status(400).json({ message: "Tên, giá, số lượng và userId không được để trống" });
     }
-    // Tạo mới sản phẩm
+    // Kiểm tra userId có phải ObjectId hợp lệ không
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: "User ID không hợp lệ" });
+    }
     const newProduct = new Products({
-      name: { type: String, required: true },
-      description: { type: String },
-      stock: { type: Number, required: true },
-      price: { type: Number, required: true },
-      size: { type: String },
-      productType: {
-        main: { type: String, required: true },  // Trường bắt buộc
-        sub: { type: String }
-      },
-      color: { type: String },
-      images: [{ type: String }],
-      materials: { type: String },
-      ofSellers: {
-        userId: { type: mongoose.Schema.Types.ObjectId, required: true, ref: "User" }  // Trường bắt buộc
-      }
+      name,
+      description,
+      stock,
+      price,
+      size,
+      productType,
+      color,
+      images,
+      materials,
+      oldPrice,
+      isSale,
+      comment,
+      pattern,
+      tags,
+      labels,
+      buyCounts,
+      viewCounts,
+      dateAdded: dateAdded ? new Date(dateAdded) : new Date(),
+      slug,
+      catolog,
+      ofSellers: { userId },
     });
-    // Lưu sản phẩm vào MongoDB
+
     await newProduct.save();
-    res.status(201).json({ message: "Sản phẩm đã thêm thành công", product: newProduct });
-  } catch (err) {
-    res.status(500).json({ message: "Lỗi khi thêm sản phẩm", error: err.message });
+    res.status(201).json({ message: "Sản phẩm đã được thêm thành công!", product: newProduct });
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi máy chủ", error: error.message });
   }
 });
 
 // API lấy danh sách sản phẩm (GET)
 router.get("/products", async (req, res) => {
   try {
-    // Lấy tất cả sản phẩm từ MongoDB
     const products = await Products.find();
     res.json(products);
   } catch (err) {
     res.status(500).json({ message: "Lỗi khi lấy sản phẩm", error: err.message });
   }
 });
-// API lấy danh sách sản phẩm (PUT)
 
+// API cập nhật sản phẩm (PUT - cập nhật toàn bộ dữ liệu)
 router.put("/products/:id", async (req, res) => {
   try {
-    // Tìm sản phẩm theo ID và cập nhật
-    const product = await Products.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "ID sản phẩm không hợp lệ" });
+    }
 
-    // Kiểm tra sản phẩm có tồn tại không
-    if (!product) {
+    const updatedProduct = await Products.findByIdAndUpdate(id, req.body, { new: true, runValidators: true });
+    if (!updatedProduct) {
       return res.status(404).json({ message: "Sản phẩm không tồn tại" });
     }
-    res.json({ message: "Sản phẩm đã cập nhật thành công", product });
+
+    res.json({ message: "Sản phẩm đã cập nhật thành công", product: updatedProduct });
+  } catch (err) {
+    res.status(500).json({ message: "Lỗi khi cập nhật sản phẩm", error: err.message });
+  }
+});
+
+// API cập nhật sản phẩm (PATCH - cập nhật từng phần dữ liệu)
+router.patch("/products/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "ID sản phẩm không hợp lệ" });
+    }
+
+    const updatedProduct = await Products.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
+    if (!updatedProduct) {
+      return res.status(404).json({ message: "Sản phẩm không tồn tại" });
+    }
+
+    res.json({ message: "Sản phẩm đã cập nhật thành công", product: updatedProduct });
   } catch (err) {
     res.status(500).json({ message: "Lỗi khi cập nhật sản phẩm", error: err.message });
   }
 });
 
 // API xóa sản phẩm (DELETE)
-
 router.delete("/products/:id", async (req, res) => {
   try {
-    // Tìm sản phẩm theo ID
-    const product = await Products.findByIdAndDelete(req.params.id);
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "ID sản phẩm không hợp lệ" });
+    }
 
-    // Kiểm tra sản phẩm đã tồn tại
-    if (!product) {
+    const deletedProduct = await Products.findByIdAndDelete(id);
+    if (!deletedProduct) {
       return res.status(404).json({ message: "Sản phẩm không tồn tại" });
     }
 
-    res.json({ message: "Sản phẩm đã xóa thành công" });
+    res.json({ message: "Sản phẩm đã xóa thành công", product: deletedProduct });
   } catch (err) {
-    res.status(500).json({ message: "L��i khi xóa sản phẩm", error: err.message });
+    res.status(500).json({ message: "Lỗi khi xóa sản phẩm", error: err.message });
   }
 });
-// API THÊM danh sách sản phẩm 
 
-router.post("/products", async (req, res) => {
+// API thêm danh sách sản phẩm (POST nhiều sản phẩm)
+router.post("/products/batch", async (req, res) => {
   try {
-    // Lấy danh sách sản phẩm từ request body
     const products = req.body;
 
-    // Thêm tất cả sản phẩm vào MongoDB
-    await Products.insertMany(products);
-    res.json({ message: "Danh sách sản phẩm đã thêm thành công" });
+    if (!Array.isArray(products) || products.length === 0) {
+      return res.status(400).json({ message: "Danh sách sản phẩm không hợp lệ" });
+    }
+    // Kiểm tra từng sản phẩm trong danh sách
+    for (const product of products) {
+      if (!product.name || !product.price || !product.stock || !product.userId) {
+        return res.status(400).json({ message: "Một số sản phẩm thiếu thông tin bắt buộc (name, price, stock, userId)" });
+      }
+      if (!mongoose.Types.ObjectId.isValid(product.userId)) {
+        return res.status(400).json({ message: `User ID không hợp lệ cho sản phẩm: ${product.name}` });
+      }
+    }
+
+    const insertedProducts = await Products.insertMany(products);
+    res.status(201).json({ message: "Danh sách sản phẩm đã thêm thành công", products: insertedProducts });
   } catch (err) {
-    res.status(500).json({ message: "L��i khi thêm danh sách sản phẩm", error: err.message });
+    res.status(500).json({ message: "Lỗi khi thêm danh sách sản phẩm", error: err.message });
   }
 });
-// API CẬP NHẬT danh sách sản phẩm (PATCH)
 
-router.patch("/products/:id", async (req, res) => {
-  try {
-    // Lấy danh sách sản phẩm từ request body
-    const updates = req.body;
-
-    // Cập nhật tất cả sản phẩm trong MongoDB
-    await Products.updateMany({}, updates);
-    res.json({ message: "Danh sách sản phẩm đã cập nhật thành công" });
-  } catch (err) {
-    res.status(500).json({ message: "LỖI khi cập nhật danh sách sản phẩm", error: err.message });
-  }
-});
-module.exports = router;  // Xuất router để sử dụng ở các tệp khác
+module.exports = router;
